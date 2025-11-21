@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4K 60fps Yayın</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: Arial, sans-serif; 
+            height: 100vh; 
+            overflow: hidden;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain;
+            background: #000;
+        }
+
+        #selfView {
+            position: absolute;
+            bottom: 80px;
+            right: 15px;
+            width: 120px;
+            height: 160px;
+            border-radius: 10px;
+            border: 2px solid #0f0;
+            object-fit: cover;
+            z-index: 10;
+            display: none;
+        }
+        
+        .panel { 
+            position: fixed; 
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100; 
+            background: rgba(0,0,0,0.95); 
+            padding: 30px; 
+            border-radius: 15px; 
+            text-align: center; 
+            width: 90%; 
+            max-width: 400px;
+            border: 2px solid #333;
+        }
+
+        h2 { 
+            margin-bottom: 15px; 
+            color: #0f0; 
+            font-size: 22px;
+        }
+
+        select, input[type="text"] { 
+            width: 100%; 
+            padding: 15px; 
+            margin: 10px 0;
+            border-radius: 8px; 
+            border: 1px solid #555; 
+            background: #1a1a1a; 
+            color: #fff; 
+            font-size: 16px;
+        }
+
+        .btn { 
+            width: 100%; 
+            padding: 15px; 
+            margin: 8px 0;
+            cursor: pointer; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            font-size: 16px; 
+            color: #fff;
+        }
+
+        .btn-host { background: #27ae60; }
+        .btn-viewer { background: #2980b9; }
+        .btn:active { opacity: 0.8; }
+
+        .controls {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: none;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .mic { background: #e74c3c; }
+        .cam { background: #f39c12; }
+        .end { background: #c0392b; }
+        .off { background: #555; opacity: 0.7; }
+
+        .status {
+            position: fixed; 
+            top: 15px; 
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(0,0,0,0.9); 
+            padding: 10px 25px;
+            border-radius: 25px; 
+            font-size: 13px; 
+            font-weight: bold;
+            border: 2px solid #0f0;
+            display: none;
+        }
+
+        .stats {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 10;
+            display: none;
+            font-family: monospace;
+        }
+
+        .live {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: #f00;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 11px;
+            display: none;
+            z-index: 10;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="video-container">
+        <video id="mainVideo" autoplay playsinline></video>
+        <video id="selfView" autoplay playsinline muted></video>
+    </div>
+
+    <div id="stats" class="stats">
+        FPS: <span id="fps">-</span><br>
+        Çözünürlük: <span id="res">-</span><br>
+        Bitrate: <span id="bit">-</span>
+    </div>
+
+    <div id="live" class="live">🔴 CANLI</div>
+
+    <div id="ui" class="panel">
+        <h2>🎥 4K 60fps Yayın</h2>
+        
+        <input type="text" id="room" placeholder="Oda Adı (örn: yayin123)">
+        
+        <select id="quality">
+            <option value="4k60">4K 60fps - Ultra</option>
+            <option value="4k30">4K 30fps</option>
+            <option value="1080p60">1080p 60fps</option>
+            <option value="1080p30" selected>1080p 30fps</option>
+            <option value="720p60">720p 60fps</option>
+        </select>
+
+        <p style="color:#0f0; font-size:14px; margin:15px 0;">📱 TELEFON (Yayıncı)</p>
+        <button class="btn btn-host" onclick="startHost()">🚀 YAYINI BAŞLAT</button>
+
+        <p style="color:#2980b9; font-size:14px; margin:15px 0 5px 0;">💻 BİLGİSAYAR (İzleyici)</p>
+        <button class="btn btn-viewer" onclick="startViewer()">👁️ İZLE (Sadece Ses)</button>
+    </div>
+
+    <div id="status" class="status">Hazır</div>
+
+    <div id="controls" class="controls">
+        <button class="control-btn mic" id="micBtn" onclick="toggleMic()">🎤</button>
+        <button class="control-btn cam" id="camBtn" onclick="toggleCam()">📹</button>
+        <button class="control-btn end" onclick="endCall()">❌</button>
+    </div>
+
+    <script>
+        var peer;
+        var localStream;
+        var currentCall;
+        var isHost = false;
+        var micOn = true;
+        var camOn = true;
+
+        var config = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        };
+
+        function getConstraints() {
+            var q = document.getElementById('quality').value;
+            var constraints = {
+                '4k60': { width: 3840, height: 2160, frameRate: 60 },
+                '4k30': { width: 3840, height: 2160, frameRate: 30 },
+                '1080p60': { width: 1920, height: 1080, frameRate: 60 },
+                '1080p30': { width: 1920, height: 1080, frameRate: 30 },
+                '720p60': { width: 1280, height: 720, frameRate: 60 }
+            };
+            return constraints[q] || constraints['1080p30'];
+        }
+
+        function startHost() {
+            var room = getRoom();
+            if (!room) return;
+
+            isHost = true;
+            showStatus("Kamera açılıyor...");
+
+            var vc = getConstraints();
+            
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: "environment",
+                    width: { ideal: vc.width },
+                    height: { ideal: vc.height },
+                    frameRate: { ideal: vc.frameRate }
+                }, 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
+            })
+            .then(function(stream) {
+                localStream = stream;
+                
+                document.getElementById('selfView').srcObject = stream;
+                document.getElementById('selfView').style.display = 'block';
+
+                hideUI();
+                document.getElementById('live').style.display = 'block';
+                showStatus("Bağlanıyor...");
+
+                peer = new Peer(room + "-host", config);
+
+                peer.on('open', function(id) {
+                    showStatus("CANLI - İzleyici bekleniyor");
+                    connectViewer(room + "-viewer");
+                });
+
+                peer.on('call', function(call) {
+                    call.answer(stream);
+                    currentCall = call;
+                    
+                    call.on('stream', function(remoteStream) {
+                        var audio = new Audio();
+                        audio.srcObject = remoteStream;
+                        audio.play();
+                        showStatus("Bağlantı aktif!");
+                    });
+                });
+
+                peer.on('error', function(err) {
+                    console.log(err);
+                    if (err.type === 'peer-unavailable') {
+                        setTimeout(function() {
+                            connectViewer(room + "-viewer");
+                        }, 2000);
+                    }
+                });
+
+            })
+            .catch(function(err) {
+                alert("Kamera Hatası: " + err.message);
+            });
+        }
+
+        function connectViewer(viewerId) {
+            if (!peer || !localStream) return;
+            
+            var call = peer.call(viewerId, localStream);
+            
+            if (call) {
+                currentCall = call;
+                showStatus("Görüntü gönderiliyor...");
+                
+                call.on('stream', function(remoteStream) {
+                    var audio = new Audio();
+                    audio.srcObject = remoteStream;
+                    audio.play();
+                    showStatus("CANLI YAYINDA!");
+                    startStats();
+                });
+
+                call.on('close', function() {
+                    showStatus("Bağlantı koptu");
+                    setTimeout(function() {
+                        connectViewer(viewerId);
+                    }, 2000);
+                });
+            } else {
+                setTimeout(function() {
+                    connectViewer(viewerId);
+                }, 2000);
+            }
+        }
+
+        function startViewer() {
+            var room = getRoom();
+            if (!room) return;
+
+            isHost = false;
+            showStatus("Mikrofon açılıyor...");
+
+            navigator.mediaDevices.getUserMedia({ 
+                video: false,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
+            })
+            .then(function(stream) {
+                localStream = stream;
+
+                hideUI();
+                document.getElementById('camBtn').style.display = 'none';
+                showStatus("Bağlanıyor...");
+
+                peer = new Peer(room + "-viewer", config);
+
+                peer.on('open', function(id) {
+                    showStatus("Hazır! Telefonda yayını başlat");
+                });
+
+                peer.on('call', function(call) {
+                    showStatus("Yayın alınıyor...");
+                    call.answer(stream);
+                    currentCall = call;
+
+                    call.on('stream', function(remoteStream) {
+                        var mainVid = document.getElementById('mainVideo');
+                        mainVid.srcObject = remoteStream;
+                        mainVid.muted = false;
+                        
+                        mainVid.play()
+                            .then(function() {
+                                showStatus("CANLI İZLENİYOR");
+                                startStats();
+                            })
+                            .catch(function() {
+                                showStatus("Oynatmak için tıkla");
+                                document.body.addEventListener('click', function() {
+                                    mainVid.play();
+                                    showStatus("CANLI İZLENİYOR");
+                                }, { once: true });
+                            });
+                    });
+                });
+
+            })
+            .catch(function(err) {
+                alert("Mikrofon Hatası: " + err.message);
+            });
+        }
+
+        function startStats() {
+            if (!currentCall || !currentCall.peerConnection) return;
+
+            document.getElementById('stats').style.display = 'block';
+
+            setInterval(function() {
+                currentCall.peerConnection.getStats().then(function(stats) {
+                    stats.forEach(function(report) {
+                        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                            document.getElementById('fps').textContent = 
+                                Math.round(report.framesPerSecond || 0);
+                            document.getElementById('res').textContent = 
+                                (report.frameWidth || 0) + 'x' + (report.frameHeight || 0);
+                            document.getElementById('bit').textContent = 
+                                Math.round((report.bytesReceived * 8) / 1024) + ' kbps';
+                        }
+                    });
+                });
+            }, 1000);
+        }
+
+        function toggleMic() {
+            if (!localStream) return;
+            
+            var track = localStream.getAudioTracks()[0];
+            if (track) {
+                micOn = !micOn;
+                track.enabled = micOn;
+                var btn = document.getElementById('micBtn');
+                btn.className = micOn ? 'control-btn mic' : 'control-btn mic off';
+                btn.textContent = micOn ? '🎤' : '🔇';
+            }
+        }
+
+        function toggleCam() {
+            if (!localStream || !isHost) return;
+            
+            var track = localStream.getVideoTracks()[0];
+            if (track) {
+                camOn = !camOn;
+                track.enabled = camOn;
+                var btn = document.getElementById('camBtn');
+                btn.className = camOn ? 'control-btn cam' : 'control-btn cam off';
+                btn.textContent = camOn ? '📹' : '📷';
+            }
+        }
+
+        function endCall() {
+            if (currentCall) currentCall.close();
+            if (localStream) {
+                localStream.getTracks().forEach(function(track) {
+                    track.stop();
+                });
+            }
+            if (peer) peer.destroy();
+            location.reload();
+        }
+
+        function getRoom() {
+            var r = document.getElementById('room').value.trim();
+            if (r.length < 2) { 
+                alert("En az 2 karakter oda adı girin!"); 
+                return null; 
+            }
+            return r.toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+
+        function showStatus(msg) {
+            var el = document.getElementById('status');
+            el.style.display = 'block';
+            el.textContent = msg;
+        }
+
+        function hideUI() {
+            document.getElementById('ui').className = 'panel hidden';
+            document.getElementById('controls').style.display = 'flex';
+        }
+
+        if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(function(err) {
+                console.log('WakeLock:', err);
+            });
+        }
+    </script>
+</body>
+</html>
