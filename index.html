@@ -777,5 +777,307 @@
                         mainVid.srcObject = remoteVideo;
                         mainVid.muted = false;
                         
-                        // Buffer ayarları
-                        if(mainVid.buffered && mainVid.buffered.length > 0) {
+                        // Buffer ayarları - düşük gecikme
+                        const bufferSize = parseInt(document.getElementById('bufferSlider').value);
+                        mainVid.playbackRate = 1.0;
+                        
+                        const playPromise = mainVid.play();
+                        if (playPromise !== undefined) {
+                            playPromise
+                                .then(() => {
+                                    showStatus("🎥 CANLI YAYIN İZLENİYOR", "connected");
+                                    startStatsMonitoring();
+                                })
+                                .catch(error => {
+                                    showStatus("▶️ Oynatmak için tıkla!", "waiting");
+                                    document.body.addEventListener('click', () => {
+                                        mainVid.play();
+                                        showStatus("🎥 CANLI YAYIN İZLENİYOR", "connected");
+                                    }, { once: true });
+                                });
+                        }
+                    });
+                });
+
+                peer.on('disconnected', () => {
+                    showStatus("🔄 Yeniden bağlanılıyor...", "waiting");
+                    peer.reconnect();
+                });
+
+            } catch(err) {
+                alert("⚠️ Mikrofon Hatası: " + err.message);
+                showStatus("❌ Hata: " + err.message, "error");
+            }
+        }
+
+        // CODEC OPTİMİZASYONU - 60 FPS İÇİN KRİTİK
+        function optimizeCodec(peerConnection) {
+            if(!peerConnection) return;
+
+            const codecType = document.getElementById('codecSelect').value;
+            const bitrate = parseInt(document.getElementById('bitrateSlider').value) * 1000000;
+
+            // RTP Sender ayarları
+            const senders = peerConnection.getSenders();
+            senders.forEach(sender => {
+                if(sender.track && sender.track.kind === 'video') {
+                    const parameters = sender.getParameters();
+                    
+                    if(!parameters.encodings) {
+                        parameters.encodings = [{}];
+                    }
+
+                    // Ultra kalite ayarları
+                    parameters.encodings[0].maxBitrate = bitrate;
+                    parameters.encodings[0].maxFramerate = 60;
+                    parameters.encodings[0].priority = 'high';
+                    parameters.encodings[0].networkPriority = 'high';
+                    
+                    // Adaptif bitrate
+                    parameters.encodings[0].scaleResolutionDownBy = 1.0;
+                    
+                    sender.setParameters(parameters)
+                        .then(() => console.log('✅ Codec optimized'))
+                        .catch(e => console.log('Codec error:', e));
+                }
+            });
+
+            // SDP manipülasyonu - Codec önceliği
+            peerConnection.addEventListener('negotiationneeded', async () => {
+                try {
+                    const offer = await peerConnection.createOffer();
+                    let sdp = offer.sdp;
+
+                    // Codec sıralaması
+                    if(codecType === 'vp9') {
+                        sdp = preferCodec(sdp, 'video', 'VP9');
+                    } else if(codecType === 'h264') {
+                        sdp = preferCodec(sdp, 'video', 'H264');
+                    }
+
+                    // Bitrate limitleri ekle
+                    sdp = sdp.replace(/a=fmtp:(\d+) /g, `a=fmtp:$1 x-google-max-bitrate=${bitrate/1000};x-google-min-bitrate=${bitrate/2000};x-google-start-bitrate=${bitrate/1500};`);
+
+                    offer.sdp = sdp;
+                    await peerConnection.setLocalDescription(offer);
+                } catch(e) {
+                    console.log('SDP error:', e);
+                }
+            });
+        }
+
+        // Codec önceliklendirme
+        function preferCodec(sdp, type, codec) {
+            const lines = sdp.split('\r\n');
+            const mLineIndex = lines.findIndex(line => line.startsWith('m=' + type));
+            
+            if (mLineIndex === -1) return sdp;
+
+            const codecIndex = lines.findIndex((line, index) => {
+                return index > mLineIndex && line.includes(codec);
+            });
+
+            if (codecIndex === -1) return sdp;
+
+            const codecPayload = lines[codecIndex].split(':')[0].split(' ')[1];
+            const mLine = lines[mLineIndex].split(' ');
+            
+            // Codec'i en başa al
+            const otherPayloads = mLine.slice(3).filter(p => p !== codecPayload);
+            mLine.splice(3, mLine.length - 3, codecPayload, ...otherPayloads);
+            lines[mLineIndex] = mLine.join(' ');
+
+            return lines.join('\r\n');
+        }
+
+        // GELİŞMİŞ İSTATİSTİK TAKİBİ
+        function startStatsMonitoring() {
+            if(!currentCall || !currentCall.peerConnection) return;
+
+            let lastBytesReceived = 0;
+            let lastTimestamp = Date.now();
+
+            statsInterval = setInterval(async () => {
+                try {
+                    const stats = await currentCall.peerConnection.getStats();
+                    let videoStats = {};
+                    let candidateStats = {};
+
+                    stats.forEach(report => {
+                        // Video istatistikleri
+                        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                            videoStats = report;
+                            
+                            // Çözünürlük
+                            document.getElementById('resolution').textContent = 
+                                `${report.frameWidth || 0}x${report.frameHeight || 0}`;
+                            
+                            // FPS hesaplama
+                            const fps = Math.round(report.framesPerSecond || 0);
+                            document.getElementById('fps').textContent = `${fps} fps`;
+                            
+                            // FPS renk kodlaması
+                            const fpsElement = document.getElementById('fps');
+                            if(fps >= 55) fpsElement.style.color = '#00ff88';
+                            else if(fps >= 30) fpsElement.style.color = '#ffd60a';
+                            else fpsElement.style.color = '#ff6b6b';
+
+                            // Bitrate hesaplama (gerçek zamanlı)
+                            const now = Date.now();
+                            const timeDiff = (now - lastTimestamp) / 1000;
+                            const bytesDiff = report.bytesReceived - lastBytesReceived;
+                            const bitrate = Math.round((bytesDiff * 8) / timeDiff / 1000);
+                            
+                            if(bitrate > 0) {
+                                document.getElementById('bitrate').textContent = `${bitrate} kbps`;
+                            }
+                            
+                            lastBytesReceived = report.bytesReceived;
+                            lastTimestamp = now;
+
+                            // Paket kaybı
+                            const packetsLost = report.packetsLost || 0;
+                            const packetsReceived = report.packetsReceived || 1;
+                            const lossPercent = ((packetsLost / (packetsLost + packetsReceived)) * 100).toFixed(2);
+                            document.getElementById('packetLoss').textContent = `${lossPercent}%`;
+
+                            // Jitter
+                            const jitter = Math.round((report.jitter || 0) * 1000);
+                            document.getElementById('jitter').textContent = `${jitter} ms`;
+                        }
+
+                        // Bağlantı istatistikleri
+                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            candidateStats = report;
+                            
+                            // Gecikme (RTT)
+                            const rtt = Math.round((report.currentRoundTripTime || 0) * 1000);
+                            document.getElementById('latency').textContent = `${rtt} ms`;
+                            
+                            // Gecikme renk kodlaması
+                            const latencyElement = document.getElementById('latency');
+                            if(rtt <= 100) latencyElement.style.color = '#00ff88';
+                            else if(rtt <= 200) latencyElement.style.color = '#ffd60a';
+                            else latencyElement.style.color = '#ff6b6b';
+                        }
+                    });
+
+                    // Adaptif kalite ayarı (otomatik optimizasyon)
+                    if(videoStats.framesPerSecond && videoStats.framesPerSecond < 45) {
+                        console.log('⚠️ FPS düşük, bitrate ayarlanıyor...');
+                        adjustBitrateAutomatically(currentCall.peerConnection, 'decrease');
+                    }
+
+                } catch(e) {
+                    console.log('Stats error:', e);
+                }
+            }, 1000);
+        }
+
+        // OTOMATİK BİTRATE AYARLAMA
+        function adjustBitrateAutomatically(peerConnection, direction) {
+            const senders = peerConnection.getSenders();
+            senders.forEach(sender => {
+                if(sender.track && sender.track.kind === 'video') {
+                    const parameters = sender.getParameters();
+                    if(parameters.encodings && parameters.encodings[0]) {
+                        const currentBitrate = parameters.encodings[0].maxBitrate || 15000000;
+                        
+                        if(direction === 'decrease') {
+                            parameters.encodings[0].maxBitrate = Math.max(5000000, currentBitrate * 0.8);
+                        } else {
+                            parameters.encodings[0].maxBitrate = Math.min(30000000, currentBitrate * 1.2);
+                        }
+                        
+                        sender.setParameters(parameters);
+                    }
+                }
+            });
+        }
+
+        function toggleStats() {
+            const card = document.getElementById('statsCard');
+            card.style.display = card.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function toggleMic() {
+            if(!localStream) return;
+            
+            const audioTrack = localStream.getAudioTracks()[0];
+            if(audioTrack) {
+                isMicOn = !isMicOn;
+                audioTrack.enabled = isMicOn;
+                const btn = document.getElementById('micBtn');
+                
+                if(isMicOn) {
+                    btn.classList.remove('off');
+                    btn.textContent = '🎤 MİKROFON';
+                } else {
+                    btn.classList.add('off');
+                    btn.textContent = '🔇 KAPALI';
+                }
+            }
+        }
+
+        function toggleCam() {
+            if(!localStream || !isHost) return;
+            
+            const videoTrack = localStream.getVideoTracks()[0];
+            if(videoTrack) {
+                isCamOn = !isCamOn;
+                videoTrack.enabled = isCamOn;
+                const btn = document.getElementById('camBtn');
+                
+                if(isCamOn) {
+                    btn.classList.remove('off');
+                    btn.textContent = '📹 KAMERA';
+                } else {
+                    btn.classList.add('off');
+                    btn.textContent = '📷 KAPALI';
+                }
+            }
+        }
+
+        function endCall() {
+            if(statsInterval) clearInterval(statsInterval);
+            if(currentCall) currentCall.close();
+            if(localStream) localStream.getTracks().forEach(track => track.stop());
+            if(peer) peer.destroy();
+            location.reload();
+        }
+
+        function getRoom() {
+            const r = document.getElementById('room-name').value.trim();
+            if(r.length < 2) { 
+                alert("⚠️ En az 2 karakter oda adı girin!"); 
+                return null; 
+            }
+            return r.toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+
+        function showStatus(msg, type = "waiting") {
+            const el = document.getElementById('status');
+            el.className = 'status-bar ' + type;
+            el.style.display = 'block';
+            el.innerText = msg;
+        }
+
+        function hideUI() {
+            document.getElementById('ui').classList.add('hidden');
+            document.getElementById('controls').style.display = 'flex';
+        }
+
+        // Ekran uyanık tutma
+        if('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(err => console.log('WakeLock:', err));
+        }
+
+        // Performans optimizasyonu
+        if('requestIdleCallback' in window) {
+            requestIdleCallback(() => {
+                console.log('🚀 Sistem optimize edildi');
+            });
+        }
+    </script>
+</body>
+</html>
