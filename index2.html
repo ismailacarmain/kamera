@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>4K 60fps Yayın</title>
+    <title>Ultra Stream - 60fps Garantili</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body { 
-            background: #000; 
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
             color: #fff; 
-            font-family: Arial, sans-serif; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
             height: 100vh; 
             overflow: hidden;
         }
@@ -31,15 +32,16 @@
 
         #selfView {
             position: absolute;
-            bottom: 80px;
-            right: 15px;
-            width: 120px;
-            height: 160px;
-            border-radius: 10px;
-            border: 2px solid #0f0;
+            bottom: 120px;
+            right: 20px;
+            width: 140px;
+            height: 180px;
+            border-radius: 12px;
+            border: 3px solid #00ff88;
             object-fit: cover;
             z-index: 10;
             display: none;
+            box-shadow: 0 8px 32px rgba(0,255,136,0.3);
         }
         
         .panel { 
@@ -48,116 +50,335 @@
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 100; 
-            background: rgba(0,0,0,0.95); 
-            padding: 30px; 
-            border-radius: 15px; 
+            background: rgba(15,15,15,0.98); 
+            padding: 40px; 
+            border-radius: 20px; 
             text-align: center; 
             width: 90%; 
-            max-width: 400px;
-            border: 2px solid #333;
+            max-width: 450px;
+            border: 2px solid #00ff88;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
         }
 
         h2 { 
-            margin-bottom: 15px; 
-            color: #0f0; 
-            font-size: 22px;
+            margin-bottom: 20px; 
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .input-group {
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 12px;
+            color: #00ff88;
+            margin-bottom: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         select, input[type="text"] { 
             width: 100%; 
-            padding: 15px; 
-            margin: 10px 0;
-            border-radius: 8px; 
-            border: 1px solid #555; 
+            padding: 16px; 
+            border-radius: 10px; 
+            border: 2px solid #333; 
             background: #1a1a1a; 
             color: #fff; 
-            font-size: 16px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0,255,136,0.2);
+        }
+
+        .quality-info {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
         }
 
         .btn { 
             width: 100%; 
-            padding: 15px; 
-            margin: 8px 0;
+            padding: 18px; 
+            margin: 10px 0;
             cursor: pointer; 
             border: none; 
-            border-radius: 8px; 
-            font-weight: bold; 
+            border-radius: 12px; 
+            font-weight: 700; 
             font-size: 16px; 
             color: #fff;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn-host { background: #27ae60; }
-        .btn-viewer { background: #2980b9; }
-        .btn:active { opacity: 0.8; }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            transition: left 0.5s;
+        }
+
+        .btn:active::before {
+            left: 100%;
+        }
+
+        .btn-host { 
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            box-shadow: 0 5px 20px rgba(0,255,136,0.4);
+        }
+        
+        .btn-viewer { 
+            background: linear-gradient(135deg, #00ccff, #0088ff);
+            box-shadow: 0 5px 20px rgba(0,204,255,0.4);
+        }
 
         .controls {
             position: fixed;
-            bottom: 15px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
             display: none;
-            gap: 10px;
+            gap: 15px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 25px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            border: 2px solid #333;
         }
 
         .control-btn {
-            padding: 12px 20px;
+            width: 50px;
+            height: 50px;
             border: none;
-            border-radius: 25px;
-            font-weight: bold;
+            border-radius: 50%;
+            font-size: 20px;
             cursor: pointer;
-            font-size: 14px;
-            color: #fff;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .mic { background: #e74c3c; }
-        .cam { background: #f39c12; }
-        .end { background: #c0392b; }
-        .off { background: #555; opacity: 0.7; }
-
-        .status {
-            position: fixed; 
-            top: 15px; 
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            background: rgba(0,0,0,0.9); 
-            padding: 10px 25px;
-            border-radius: 25px; 
-            font-size: 13px; 
-            font-weight: bold;
-            border: 2px solid #0f0;
-            display: none;
+        .control-btn:active {
+            transform: scale(0.9);
         }
 
-        .stats {
+        .mic { background: linear-gradient(135deg, #ff4757, #ff6348); }
+        .cam { background: linear-gradient(135deg, #ffa502, #ff6348); }
+        .end { background: linear-gradient(135deg, #ee5a6f, #c44569); }
+        .quality-control { background: linear-gradient(135deg, #00ccff, #0088ff); font-size: 16px; }
+        .off { 
+            background: #333; 
+            opacity: 0.5;
+        }
+
+        .stats-panel {
             position: fixed;
-            top: 15px;
-            left: 15px;
-            background: rgba(0,0,0,0.9);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 12px;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 13px;
             z-index: 10;
             display: none;
+            min-width: 280px;
+            border: 2px solid #00ff88;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #888;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: #00ff88;
+            font-weight: 700;
             font-family: monospace;
         }
 
-        .live {
+        .live-indicator {
             position: fixed;
-            top: 15px;
-            right: 15px;
-            background: #f00;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ff4757, #ff0844);
             color: #fff;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 800;
+            font-size: 13px;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 5px 25px rgba(255,8,68,0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .status-bar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.95);
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10;
+            display: none;
+            border: 2px solid #00ff88;
+            backdrop-filter: blur(10px);
+        }
+
+        .quality-selector {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.98);
+            padding: 30px;
+            border-radius: 20px;
+            z-index: 200;
+            display: none;
+            border: 2px solid #00ff88;
+            min-width: 300px;
+        }
+
+        .quality-option {
+            padding: 15px;
+            margin: 10px 0;
+            background: #1a1a1a;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid #333;
+            transition: all 0.3s;
+        }
+
+        .quality-option:hover {
+            border-color: #00ff88;
+            background: #222;
+        }
+
+        .quality-option.active {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.1);
+        }
+
+        .session-summary {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.98);
+            padding: 40px;
+            border-radius: 20px;
+            z-index: 300;
+            display: none;
+            border: 2px solid #00ff88;
+            min-width: 350px;
+            text-align: center;
+        }
+
+        .summary-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #00ff88;
+        }
+
+        .summary-stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-size: 16px;
+        }
+
+        .data-usage {
+            font-size: 32px;
+            color: #00ccff;
+            font-weight: 800;
+            margin: 20px 0;
+        }
+
+        .hidden { display: none !important; }
+
+        .fps-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
             padding: 8px 15px;
             border-radius: 20px;
-            font-weight: bold;
+            font-weight: 800;
+            font-size: 16px;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 5px 20px rgba(0,255,136,0.5);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 60px;
+            margin-top: 15px;
+            position: relative;
+            background: #0a0a0a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .chart-bar {
+            position: absolute;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(to top, #00ff88, #00ccff);
+            transition: height 0.3s;
+        }
+
+        .bandwidth-indicator {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 10px 15px;
+            border-radius: 10px;
             font-size: 11px;
             display: none;
             z-index: 10;
         }
-
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -167,69 +388,161 @@
         <video id="selfView" autoplay playsinline muted></video>
     </div>
 
-    <div id="stats" class="stats">
-        FPS: <span id="fps">-</span><br>
-        Çözünürlük: <span id="res">-</span><br>
-        Bitrate: <span id="bit">-</span>
+    <div id="statsPanel" class="stats-panel">
+        <div style="font-size: 16px; font-weight: 800; margin-bottom: 15px; color: #00ff88;">📊 CANLI İSTATİSTİKLER</div>
+        <div class="stat-row">
+            <span class="stat-label">FPS</span>
+            <span class="stat-value" id="fps">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Çözünürlük</span>
+            <span class="stat-value" id="resolution">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Bitrate</span>
+            <span class="stat-value" id="bitrate">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Paket Kaybı</span>
+            <span class="stat-value" id="packetLoss">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Gecikme</span>
+            <span class="stat-value" id="latency">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Veri Kullanımı</span>
+            <span class="stat-value" id="dataUsage">0 MB</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Süre</span>
+            <span class="stat-value" id="duration">00:00</span>
+        </div>
+        <div class="chart-container" id="bitrateChart"></div>
     </div>
 
-    <div id="live" class="live">🔴 CANLI</div>
+    <div id="liveIndicator" class="live-indicator">🔴 CANLI YAYINDA</div>
+    <div id="fpsBadge" class="fps-badge">60 FPS</div>
 
     <div id="ui" class="panel">
-        <h2>🎥 4K 60fps Yayın</h2>
+        <h2>⚡ Ultra Stream 60fps</h2>
         
-        <input type="text" id="room" placeholder="Oda Adı (örn: yayin123)">
+        <div class="input-group">
+            <label class="input-label">🔑 Oda Adı</label>
+            <input type="text" id="room" placeholder="Benzersiz bir oda adı girin">
+        </div>
         
-        <select id="quality">
-            <option value="4k60">4K 60fps - Ultra</option>
-            <option value="4k30">4K 30fps</option>
-            <option value="1080p60">1080p 60fps</option>
-            <option value="1080p30" selected>1080p 30fps</option>
-            <option value="720p60">720p 60fps</option>
-        </select>
+        <div class="input-group">
+            <label class="input-label">🎨 Kalite Profili</label>
+            <select id="quality">
+                <option value="4k60">4K 60fps (3840x2160@60) - Ultra</option>
+                <option value="1440p60">2K 60fps (2560x1440@60) - Yüksek</option>
+                <option value="1080p60" selected>Full HD 60fps (1920x1080@60) - Dengeli</option>
+                <option value="720p60">HD 60fps (1280x720@60) - Mobil</option>
+                <option value="480p60">SD 60fps (854x480@60) - Düşük Bant</option>
+            </select>
+            <div class="quality-info">💡 60fps garantili, çözünürlük cihazınıza göre ayarlanır</div>
+        </div>
 
-        <p style="color:#0f0; font-size:14px; margin:15px 0;">📱 TELEFON (Yayıncı)</p>
+        <p style="color:#00ff88; font-size:13px; margin:20px 0 10px 0; font-weight:700;">📱 YAYINCI MODU</p>
         <button class="btn btn-host" onclick="startHost()">🚀 YAYINI BAŞLAT</button>
 
-        <p style="color:#2980b9; font-size:14px; margin:15px 0 5px 0;">💻 BİLGİSAYAR (İzleyici)</p>
-        <button class="btn btn-viewer" onclick="startViewer()">👁️ İZLE (Sadece Ses)</button>
+        <p style="color:#00ccff; font-size:13px; margin:20px 0 10px 0; font-weight:700;">💻 İZLEYİCİ MODU</p>
+        <button class="btn btn-viewer" onclick="startViewer()">👁️ YAYINI İZLE</button>
     </div>
 
-    <div id="status" class="status">Hazır</div>
+    <div id="statusBar" class="status-bar">Hazır</div>
 
     <div id="controls" class="controls">
-        <button class="control-btn mic" id="micBtn" onclick="toggleMic()">🎤</button>
-        <button class="control-btn cam" id="camBtn" onclick="toggleCam()">📹</button>
-        <button class="control-btn end" onclick="endCall()">❌</button>
+        <button class="control-btn mic" id="micBtn" onclick="toggleMic()" title="Mikrofon">🎤</button>
+        <button class="control-btn cam" id="camBtn" onclick="toggleCam()" title="Kamera">📹</button>
+        <button class="control-btn quality-control" id="qualityBtn" onclick="showQualitySelector()" title="Kalite">⚙️</button>
+        <button class="control-btn end" onclick="endCall()" title="Bitir">❌</button>
+    </div>
+
+    <div id="qualitySelector" class="quality-selector">
+        <h3 style="color:#00ff88; margin-bottom:20px;">🎯 Anlık Kalite Değiştir</h3>
+        <div class="quality-option" onclick="changeQuality('4k60')">
+            <strong>4K 60fps</strong><br>
+            <small>3840x2160 @ 60fps</small>
+        </div>
+        <div class="quality-option" onclick="changeQuality('1440p60')">
+            <strong>2K 60fps</strong><br>
+            <small>2560x1440 @ 60fps</small>
+        </div>
+        <div class="quality-option" onclick="changeQuality('1080p60')">
+            <strong>Full HD 60fps</strong><br>
+            <small>1920x1080 @ 60fps</small>
+        </div>
+        <div class="quality-option" onclick="changeQuality('720p60')">
+            <strong>HD 60fps</strong><br>
+            <small>1280x720 @ 60fps</small>
+        </div>
+        <div class="quality-option" onclick="changeQuality('480p60')">
+            <strong>SD 60fps</strong><br>
+            <small>854x480 @ 60fps</small>
+        </div>
+        <button class="btn btn-host" onclick="closeQualitySelector()" style="margin-top:15px;">✓ Kapat</button>
+    </div>
+
+    <div id="sessionSummary" class="session-summary">
+        <div class="summary-title">📊 Yayın Özeti</div>
+        <div class="summary-stat">
+            <span>Toplam Süre:</span>
+            <span id="totalDuration">-</span>
+        </div>
+        <div class="summary-stat">
+            <span>Ortalama FPS:</span>
+            <span id="avgFps">-</span>
+        </div>
+        <div class="summary-stat">
+            <span>Ortalama Bitrate:</span>
+            <span id="avgBitrate">-</span>
+        </div>
+        <div class="data-usage" id="totalData">- MB</div>
+        <div style="font-size:12px; color:#888; margin-bottom:20px;">Toplam Veri Kullanımı</div>
+        <button class="btn btn-host" onclick="location.reload()">🔄 Yeni Yayın</button>
     </div>
 
     <script>
-        var peer;
-        var localStream;
-        var currentCall;
+        var peer, localStream, currentCall;
         var isHost = false;
-        var micOn = true;
-        var camOn = true;
-
+        var micOn = true, camOn = true;
+        var currentQuality = '1080p60';
+        
+        // İstatistik değişkenleri
+        var startTime = null;
+        var totalBytes = 0;
+        var fpsHistory = [];
+        var bitrateHistory = [];
+        var lastBytesReceived = 0;
+        var lastBytesReceivedTime = 0;
+        
         var config = {
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
                 ]
             }
         };
 
-        function getConstraints() {
-            var q = document.getElementById('quality').value;
-            var constraints = {
-                '4k60': { width: 3840, height: 2160, frameRate: 60 },
-                '4k30': { width: 3840, height: 2160, frameRate: 30 },
-                '1080p60': { width: 1920, height: 1080, frameRate: 60 },
-                '1080p30': { width: 1920, height: 1080, frameRate: 30 },
-                '720p60': { width: 1280, height: 720, frameRate: 60 }
+        var qualityPresets = {
+            '4k60': { width: 3840, height: 2160, frameRate: 60, bitrate: 20000 },
+            '1440p60': { width: 2560, height: 1440, frameRate: 60, bitrate: 12000 },
+            '1080p60': { width: 1920, height: 1080, frameRate: 60, bitrate: 8000 },
+            '720p60': { width: 1280, height: 720, frameRate: 60, bitrate: 5000 },
+            '480p60': { width: 854, height: 480, frameRate: 60, bitrate: 2500 }
+        };
+
+        function getConstraints(quality) {
+            var preset = qualityPresets[quality] || qualityPresets['1080p60'];
+            return {
+                width: { ideal: preset.width, max: preset.width },
+                height: { ideal: preset.height, max: preset.height },
+                frameRate: { ideal: 60, min: 60 }
             };
-            return constraints[q] || constraints['1080p30'];
         }
 
         function startHost() {
@@ -237,36 +550,46 @@
             if (!room) return;
 
             isHost = true;
-            showStatus("Kamera açılıyor...");
+            currentQuality = document.getElementById('quality').value;
+            showStatus("🎥 Kamera başlatılıyor...");
 
-            var vc = getConstraints();
+            var vc = getConstraints(currentQuality);
             
             navigator.mediaDevices.getUserMedia({ 
                 video: { 
                     facingMode: "environment",
-                    width: { ideal: vc.width },
-                    height: { ideal: vc.height },
-                    frameRate: { ideal: vc.frameRate }
+                    width: vc.width,
+                    height: vc.height,
+                    frameRate: vc.frameRate
                 }, 
                 audio: {
                     echoCancellation: true,
-                    noiseSuppression: true
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    sampleRate: 48000
                 }
             })
             .then(function(stream) {
                 localStream = stream;
                 
+                // Video track ayarları
+                var videoTrack = stream.getVideoTracks()[0];
+                var settings = videoTrack.getSettings();
+                console.log('Video ayarları:', settings);
+                
                 document.getElementById('selfView').srcObject = stream;
                 document.getElementById('selfView').style.display = 'block';
 
                 hideUI();
-                document.getElementById('live').style.display = 'block';
-                showStatus("Bağlanıyor...");
+                document.getElementById('liveIndicator').style.display = 'block';
+                document.getElementById('fpsBadge').style.display = 'block';
+                showStatus("📡 Bağlanıyor...");
 
                 peer = new Peer(room + "-host", config);
 
                 peer.on('open', function(id) {
-                    showStatus("CANLI - İzleyici bekleniyor");
+                    showStatus("✅ HAZIR - İzleyici bekleniyor");
+                    startTime = Date.now();
                     connectViewer(room + "-viewer");
                 });
 
@@ -278,22 +601,16 @@
                         var audio = new Audio();
                         audio.srcObject = remoteStream;
                         audio.play();
-                        showStatus("Bağlantı aktif!");
+                        showStatus("🔥 YAYINDA!");
+                        startStats();
                     });
                 });
 
-                peer.on('error', function(err) {
-                    console.log(err);
-                    if (err.type === 'peer-unavailable') {
-                        setTimeout(function() {
-                            connectViewer(room + "-viewer");
-                        }, 2000);
-                    }
-                });
-
+                peer.on('error', handlePeerError);
             })
             .catch(function(err) {
-                alert("Kamera Hatası: " + err.message);
+                alert("❌ Kamera Hatası: " + err.message);
+                console.error(err);
             });
         }
 
@@ -304,26 +621,20 @@
             
             if (call) {
                 currentCall = call;
-                showStatus("Görüntü gönderiliyor...");
                 
                 call.on('stream', function(remoteStream) {
                     var audio = new Audio();
                     audio.srcObject = remoteStream;
                     audio.play();
-                    showStatus("CANLI YAYINDA!");
+                    showStatus("🔥 CANLI YAYINDA!");
                     startStats();
                 });
 
                 call.on('close', function() {
-                    showStatus("Bağlantı koptu");
-                    setTimeout(function() {
-                        connectViewer(viewerId);
-                    }, 2000);
+                    setTimeout(function() { connectViewer(viewerId); }, 2000);
                 });
             } else {
-                setTimeout(function() {
-                    connectViewer(viewerId);
-                }, 2000);
+                setTimeout(function() { connectViewer(viewerId); }, 2000);
             }
         }
 
@@ -332,13 +643,14 @@
             if (!room) return;
 
             isHost = false;
-            showStatus("Mikrofon açılıyor...");
+            showStatus("🎤 Mikrofon açılıyor...");
 
             navigator.mediaDevices.getUserMedia({ 
                 video: false,
                 audio: {
                     echoCancellation: true,
-                    noiseSuppression: true
+                    noiseSuppression: true,
+                    autoGainControl: true
                 }
             })
             .then(function(stream) {
@@ -346,16 +658,18 @@
 
                 hideUI();
                 document.getElementById('camBtn').style.display = 'none';
-                showStatus("Bağlanıyor...");
+                document.getElementById('qualityBtn').style.display = 'none';
+                showStatus("📡 Bağlanıyor...");
 
                 peer = new Peer(room + "-viewer", config);
 
                 peer.on('open', function(id) {
-                    showStatus("Hazır! Telefonda yayını başlat");
+                    showStatus("✅ Hazır - Yayın bekleniyor");
+                    startTime = Date.now();
                 });
 
                 peer.on('call', function(call) {
-                    showStatus("Yayın alınıyor...");
+                    showStatus("📥 Yayın alınıyor...");
                     call.answer(stream);
                     currentCall = call;
 
@@ -366,44 +680,157 @@
                         
                         mainVid.play()
                             .then(function() {
-                                showStatus("CANLI İZLENİYOR");
+                                showStatus("🎬 İZLENİYOR");
+                                document.getElementById('fpsBadge').style.display = 'block';
                                 startStats();
                             })
                             .catch(function() {
-                                showStatus("Oynatmak için tıkla");
+                                showStatus("▶️ Oynatmak için tıkla");
                                 document.body.addEventListener('click', function() {
                                     mainVid.play();
-                                    showStatus("CANLI İZLENİYOR");
                                 }, { once: true });
                             });
                     });
                 });
 
+                peer.on('error', handlePeerError);
             })
             .catch(function(err) {
-                alert("Mikrofon Hatası: " + err.message);
+                alert("❌ Mikrofon Hatası: " + err.message);
             });
         }
 
         function startStats() {
             if (!currentCall || !currentCall.peerConnection) return;
 
-            document.getElementById('stats').style.display = 'block';
+            document.getElementById('statsPanel').style.display = 'block';
+            
+            // Bitrate chart için bar'ları oluştur
+            var chartContainer = document.getElementById('bitrateChart');
+            for (var i = 0; i < 50; i++) {
+                var bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.left = (i * 2) + '%';
+                chartContainer.appendChild(bar);
+            }
 
-            setInterval(function() {
+            var updateInterval = setInterval(function() {
+                if (!currentCall || !currentCall.peerConnection) {
+                    clearInterval(updateInterval);
+                    return;
+                }
+
                 currentCall.peerConnection.getStats().then(function(stats) {
+                    var currentFps = 0;
+                    var currentBitrate = 0;
+                    var packetsLost = 0;
+                    var packetsReceived = 0;
+                    var currentLatency = 0;
+
                     stats.forEach(function(report) {
                         if (report.type === 'inbound-rtp' && report.kind === 'video') {
-                            document.getElementById('fps').textContent = 
-                                Math.round(report.framesPerSecond || 0);
-                            document.getElementById('res').textContent = 
+                            currentFps = Math.round(report.framesPerSecond || 0);
+                            
+                            var bytesReceived = report.bytesReceived || 0;
+                            var timestamp = report.timestamp || Date.now();
+                            
+                            if (lastBytesReceivedTime > 0) {
+                                var timeDiff = (timestamp - lastBytesReceivedTime) / 1000;
+                                var bytesDiff = bytesReceived - lastBytesReceived;
+                                currentBitrate = Math.round((bytesDiff * 8) / timeDiff / 1000);
+                            }
+                            
+                            lastBytesReceived = bytesReceived;
+                            lastBytesReceivedTime = timestamp;
+                            totalBytes = bytesReceived;
+                            
+                            document.getElementById('fps').textContent = currentFps + ' fps';
+                            document.getElementById('fpsBadge').textContent = currentFps + ' FPS';
+                            document.getElementById('resolution').textContent = 
                                 (report.frameWidth || 0) + 'x' + (report.frameHeight || 0);
-                            document.getElementById('bit').textContent = 
-                                Math.round((report.bytesReceived * 8) / 1024) + ' kbps';
+                            document.getElementById('bitrate').textContent = 
+                                currentBitrate + ' kbps';
+                            
+                            packetsLost = report.packetsLost || 0;
+                            packetsReceived = report.packetsReceived || 1;
+                            var lossPercent = ((packetsLost / packetsReceived) * 100).toFixed(2);
+                            document.getElementById('packetLoss').textContent = lossPercent + '%';
+                            
+                            fpsHistory.push(currentFps);
+                            if (fpsHistory.length > 100) fpsHistory.shift();
+                            
+                            bitrateHistory.push(currentBitrate);
+                            if (bitrateHistory.length > 50) bitrateHistory.shift();
+                            
+                            updateBitrateChart();
+                        }
+                        
+                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            currentLatency = Math.round(report.currentRoundTripTime * 1000) || 0;
+                            document.getElementById('latency').textContent = currentLatency + ' ms';
                         }
                     });
+                    
+                    // Veri kullanımı ve süre
+                    var dataMB = (totalBytes / (1024 * 1024)).toFixed(2);
+                    document.getElementById('dataUsage').textContent = dataMB + ' MB';
+                    
+                    if (startTime) {
+                        var elapsed = Math.floor((Date.now() - startTime) / 1000);
+                        var minutes = Math.floor(elapsed / 60);
+                        var seconds = elapsed % 60;
+                        document.getElementById('duration').textContent = 
+                            String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                    }
                 });
             }, 1000);
+        }
+
+        function updateBitrateChart() {
+            var bars = document.querySelectorAll('.chart-bar');
+            var maxBitrate = Math.max.apply(Math, bitrateHistory) || 1;
+            
+            bitrateHistory.forEach(function(value, index) {
+                if (bars[index]) {
+                    var heightPercent = (value / maxBitrate) * 100;
+                    bars[index].style.height = heightPercent + '%';
+                }
+            });
+        }
+
+        function showQualitySelector() {
+            document.getElementById('qualitySelector').style.display = 'block';
+        }
+
+        function closeQualitySelector() {
+            document.getElementById('qualitySelector').style.display = 'none';
+        }
+
+        function changeQuality(newQuality) {
+            if (!isHost || !localStream) return;
+            
+            currentQuality = newQuality;
+            showStatus("⚙️ Kalite değiştiriliyor...");
+            closeQualitySelector();
+            
+            var vc = getConstraints(newQuality);
+            var videoTrack = localStream.getVideoTracks()[0];
+            
+            videoTrack.applyConstraints({
+                width: vc.width,
+                height: vc.height,
+                frameRate: vc.frameRate
+            })
+            .then(function() {
+                showStatus("✅ Kalite güncellendi: " + newQuality);
+                setTimeout(function() {
+                    showStatus("🔥 CANLI YAYINDA!");
+                }, 2000);
+            })
+            .catch(function(err) {
+                console.error('Kalite değiştirme hatası:', err);
+                showStatus("⚠️ Kalite değiştirilemedi");
+            });
         }
 
         function toggleMic() {
@@ -433,6 +860,33 @@
         }
 
         function endCall() {
+            showSessionSummary();
+        }
+
+        function showSessionSummary() {
+            if (startTime) {
+                var elapsed = Math.floor((Date.now() - startTime) / 1000);
+                var minutes = Math.floor(elapsed / 60);
+                var seconds = elapsed % 60;
+                document.getElementById('totalDuration').textContent = 
+                    minutes + ' dakika ' + seconds + ' saniye';
+                
+                var avgFps = fpsHistory.length > 0 
+                    ? Math.round(fpsHistory.reduce(function(a, b) { return a + b; }, 0) / fpsHistory.length)
+                    : 0;
+                document.getElementById('avgFps').textContent = avgFps + ' fps';
+                
+                var avgBitrate = bitrateHistory.length > 0
+                    ? Math.round(bitrateHistory.reduce(function(a, b) { return a + b; }, 0) / bitrateHistory.length)
+                    : 0;
+                document.getElementById('avgBitrate').textContent = avgBitrate + ' kbps';
+                
+                var dataMB = (totalBytes / (1024 * 1024)).toFixed(2);
+                document.getElementById('totalData').textContent = dataMB + ' MB';
+                
+                document.getElementById('sessionSummary').style.display = 'block';
+            }
+            
             if (currentCall) currentCall.close();
             if (localStream) {
                 localStream.getTracks().forEach(function(track) {
@@ -440,20 +894,31 @@
                 });
             }
             if (peer) peer.destroy();
-            location.reload();
+        }
+
+        function handlePeerError(err) {
+            console.log('Peer hatası:', err);
+            if (err.type === 'peer-unavailable') {
+                setTimeout(function() {
+                    var room = document.getElementById('room').value.trim();
+                    if (isHost) {
+                        connectViewer(room + "-viewer");
+                    }
+                }, 2000);
+            }
         }
 
         function getRoom() {
             var r = document.getElementById('room').value.trim();
             if (r.length < 2) { 
-                alert("En az 2 karakter oda adı girin!"); 
+                alert("❌ En az 2 karakter oda adı girin!"); 
                 return null; 
             }
             return r.toLowerCase().replace(/[^a-z0-9]/g, '');
         }
 
         function showStatus(msg) {
-            var el = document.getElementById('status');
+            var el = document.getElementById('statusBar');
             el.style.display = 'block';
             el.textContent = msg;
         }
@@ -463,11 +928,21 @@
             document.getElementById('controls').style.display = 'flex';
         }
 
+        // Wake Lock - Ekranı açık tut
         if ('wakeLock' in navigator) {
             navigator.wakeLock.request('screen').catch(function(err) {
-                console.log('WakeLock:', err);
+                console.log('WakeLock hatası:', err);
             });
         }
+
+        // Sayfa kapanırken uyarı
+        window.addEventListener('beforeunload', function(e) {
+            if (currentCall || localStream) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        });
     </script>
 </body>
 </html>
