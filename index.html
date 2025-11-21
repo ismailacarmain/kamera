@@ -3,191 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Proje4 Kesin Çözüm</title>
+    <title>Proje4 Ultimate</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; background: #000; }
-        
-        /* Arayüz */
+        /* Video Konteynerı */
+        #video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        video { 
+            transition: all 0.5s ease; /* Geçiş animasyonu */
+            object-fit: contain; 
+        }
+
+        /* --- İZLEME MODLARI (CSS) --- */
+        /* 1. Tam Ekran (Geniş) Mod */
+        .mode-landscape {
+            width: 100%;
+            height: 100%;
+        }
+        /* 2. Telefon (Dik) Mod */
+        .mode-portrait {
+            height: 95vh !important;
+            aspect-ratio: 9 / 16;
+            border: 2px solid #333;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        /* Arayüz Paneli */
         .panel { 
-            position: absolute; z-index: 10; 
-            background: rgba(0, 0, 0, 0.9); 
-            padding: 20px; border-radius: 15px; 
-            text-align: center; width: 85%; max-width: 350px; 
-            border: 1px solid #444;
+            position: absolute; z-index: 20; 
+            background: rgba(15, 15, 15, 0.95); 
+            padding: 25px; border-radius: 16px; 
+            text-align: center; width: 85%; max-width: 380px; 
+            border: 1px solid #333;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
         }
 
-        h2 { margin-top: 0; color: #fff; }
-        p { color: #aaa; font-size: 13px; margin-bottom: 15px; }
+        h2 { margin: 0 0 15px 0; font-size: 20px; letter-spacing: 1px; }
+        label { display: block; text-align: left; font-size: 12px; color: #888; margin-bottom: 5px; margin-top: 10px; }
 
-        input { 
-            padding: 15px; width: 100%; margin-bottom: 10px; 
-            border-radius: 8px; border: 1px solid #555; 
+        input, select { 
+            padding: 12px; width: 100%; margin-bottom: 10px; 
+            border-radius: 8px; border: 1px solid #444; 
             background: #222; color: #fff; text-align: center; 
-            font-size: 18px; font-weight: bold; box-sizing: border-box;
+            font-size: 16px; font-weight: 600; outline: none; box-sizing: border-box;
         }
 
-        /* Butonlar */
         .btn { 
-            width: 100%; padding: 15px; cursor: pointer; border: none; 
-            border-radius: 8px; font-weight: bold; font-size: 16px; 
-            margin-top: 5px; color: white;
+            width: 100%; padding: 14px; cursor: pointer; border: none; 
+            border-radius: 8px; font-weight: bold; font-size: 15px; 
+            margin-top: 10px; color: white; transition: 0.2s;
         }
-        .btn-host { background: #27ae60; } /* Yeşil */
-        .btn-viewer { background: #2980b9; } /* Mavi */
-        
-        /* Durum Çubuğu */
-        .status-bar {
-            position: absolute; bottom: 30px; z-index: 20;
-            background: rgba(0,0,0,0.7); padding: 10px 20px;
-            border-radius: 50px; font-size: 14px; color: #0f0;
-            border: 1px solid #0f0;
+        .btn:active { transform: scale(0.98); }
+        .btn-host { background: linear-gradient(to right, #27ae60, #2ecc71); }
+        .btn-viewer { background: linear-gradient(to right, #2980b9, #3498db); }
+
+        /* İZLEYİCİ KONTROL ÇUBUĞU (Yüzen Menü) */
+        #viewer-controls-bar {
+            position: absolute; bottom: 30px; z-index: 30;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px; border-radius: 50px;
+            display: flex; gap: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
+        .control-btn {
+            background: transparent; border: none; color: white;
+            font-size: 18px; cursor: pointer; padding: 10px;
+            border-radius: 50%; transition: 0.2s;
+        }
+        .control-btn:hover { background: rgba(255,255,255,0.2); }
+        .control-btn i { display: block; margin-bottom: 3px; }
+        .control-btn span { font-size: 10px; display: block; }
 
         .hidden { display: none !important; }
+        .status-text { font-size: 12px; color: #aaa; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div id="ui" class="panel">
-        <h2>Bağlantı Paneli</h2>
-        <p>Basit bir oda adı girin (Örn: 123, ev, test)</p>
+        <h2><i class="fa-solid fa-tower-broadcast"></i> 5G Canlı Bağlantı</h2>
         
-        <input type="text" id="room-name" placeholder="Oda Adı Girin">
-        
-        <div id="host-controls">
-            <p style="color:#f1c40f;">Telefon:</p>
-            <button class="btn btn-host" onclick="startAsHost()">YAYINI BAŞLAT (Telefon)</button>
+        <label>Oda Adı</label>
+        <input type="text" id="room-name" placeholder="Örn: 123, ev, ofis">
+
+        <div style="border-top: 1px solid #333; margin-top: 15px; padding-top: 15px;">
+            <label style="color:#2ecc71; font-weight:bold;">TELEFON (YAYINCI)</label>
+            <select id="quality-select">
+                <option value="720">Standart (720p 30fps) - En Stabil</option>
+                <option value="1080">Full HD (1080p 30fps) - Net</option>
+                <option value="4k30">Ultra HD (4K 30fps) - Yüksek Kalite</option>
+                <option value="4k60">Pro Max (4K 60fps) - Extreme</option>
+            </select>
+            <button class="btn btn-host" onclick="startAsHost()">KAMERAYI AÇ & YAYINLA</button>
         </div>
 
-        <div id="viewer-controls">
-             <p style="color:#3498db;">Bilgisayar:</p>
-            <button class="btn btn-viewer" onclick="startAsViewer()">İZLEMEYE BAŞLA (PC)</button>
+        <div style="border-top: 1px solid #333; margin-top: 15px; padding-top: 15px;">
+             <label style="color:#3498db; font-weight:bold;">BİLGİSAYAR (İZLEYİCİ)</label>
+            <button class="btn btn-viewer" onclick="startAsViewer()">İZLEMEYE BAŞLA</button>
         </div>
+        
+        <p id="status-msg" class="status-text">Hazır</p>
     </div>
 
-    <video id="videoDisplay" autoplay playsinline></video>
-    <div id="status" class="status-bar hidden">Durum: Hazır</div>
+    <div id="video-container">
+        <video id="videoDisplay" class="mode-landscape" autoplay playsinline></video>
+    </div>
+
+    <div id="viewer-controls-bar" class="hidden">
+        <button class="control-btn" onclick="setMode('portrait')">
+            <i class="fa-solid fa-mobile-screen"></i>
+            <span>Dik Mod</span>
+        </button>
+        <button class="control-btn" onclick="setMode('landscape')">
+            <i class="fa-solid fa-expand"></i>
+            <span>Geniş Mod</span>
+        </button>
+        <button class="control-btn" onclick="toggleMute()">
+            <i id="mute-icon" class="fa-solid fa-volume-high"></i>
+            <span>Ses</span>
+        </button>
+    </div>
 
     <script>
         let peer;
         let localStream;
-        // Çok daha kapsamlı STUN listesi (Bağlantı garantisi için)
+        // Bağlantı garantisi için STUN listesi
         const config = {
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' }
+                    { urls: 'stun:stun2.l.google.com:19302' }
                 ]
             }
         };
 
-        // --- TELEFON (HOST) KODLARI ---
+        // --- 1. TELEFON (YAYINCI) ---
         function startAsHost() {
             const room = getRoom();
             if(!room) return;
 
-            showStatus("Kamera açılıyor...");
-            
-            // 1080p yerine 720p kullanarak bağlantı şansını artırıyoruz (Donmayı engeller)
-            navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment", width: 1280, height: 720 }, 
-                audio: true 
-            })
+            // Kalite Ayarlarını Al
+            const quality = document.getElementById('quality-select').value;
+            let constraints = { audio: true, video: { facingMode: "environment" } };
+
+            if(quality === '720') {
+                constraints.video.width = { ideal: 1280 }; constraints.video.height = { ideal: 720 };
+            } else if(quality === '1080') {
+                constraints.video.width = { ideal: 1920 }; constraints.video.height = { ideal: 1080 };
+            } else if(quality === '4k30') {
+                constraints.video.width = { ideal: 3840 }; constraints.video.height = { ideal: 2160 };
+            } else if(quality === '4k60') {
+                constraints.video.width = { ideal: 3840 }; constraints.video.height = { ideal: 2160 };
+                constraints.video.frameRate = { ideal: 60 };
+            }
+
+            setStatus("Kamera (4K/HDR) hazırlanıyor...");
+
+            navigator.mediaDevices.getUserMedia(constraints)
             .then(stream => {
                 localStream = stream;
-                // Kendi görüntünü ekranda gör (muted)
                 const vid = document.getElementById('videoDisplay');
                 vid.srcObject = stream;
                 vid.muted = true; 
 
                 document.getElementById('ui').classList.add('hidden');
-                showStatus("Sunucuya bağlanılıyor...");
+                setStatus("Sunucuya bağlanılıyor...");
 
-                // Peer'i başlat
                 peer = new Peer(room + "-host", config);
 
                 peer.on('open', (id) => {
-                    showStatus("Yayın başladı! PC aranıyor...");
-                    // *** KRİTİK NOKTA: Telefon sürekli PC'yi arar ***
+                    setStatus("Yayın Aktif! PC Aranıyor...");
                     connectToViewer(room + "-viewer");
                 });
 
                 peer.on('error', err => {
-                    console.log(err);
-                    // Eğer oda doluysa veya hata varsa PC'yi aramayı tekrar dene
-                    if(err.type === 'peer-unavailable') {
-                        showStatus("PC henüz gelmedi, bekleniyor...");
+                     if(err.type === 'peer-unavailable') {
+                        // PC henüz yoksa tekrar dene
                         setTimeout(() => connectToViewer(room + "-viewer"), 2000);
+                    } else {
+                        alert("Hata: " + err);
                     }
                 });
             })
-            .catch(err => alert("Kamera Hatası: " + err));
+            .catch(err => alert("Kamera bu kaliteyi desteklemiyor olabilir: " + err));
         }
 
-        // Telefonun PC'yi arama döngüsü
+        // Telefonun PC'yi sürekli arama döngüsü
         function connectToViewer(viewerId) {
-            // PC'yi görüntülü ara
             const call = peer.call(viewerId, localStream);
             
             if(call) {
-                showStatus("PC Bulundu! Görüntü gönderiliyor...");
+                setStatus("PC BULUNDU -> Veri gönderiliyor");
                 call.on('close', () => {
-                    showStatus("PC ayrıldı. Tekrar aranıyor...");
                     setTimeout(() => connectToViewer(viewerId), 2000);
                 });
             } else {
-                // Eğer arama başarısızsa (PC yoksa) 2 saniye sonra tekrar dene
                 setTimeout(() => connectToViewer(viewerId), 2000);
             }
         }
 
-
-        // --- BİLGİSAYAR (VIEWER) KODLARI ---
+        // --- 2. BİLGİSAYAR (İZLEYİCİ) ---
         function startAsViewer() {
             const room = getRoom();
             if(!room) return;
 
             document.getElementById('ui').classList.add('hidden');
-            showStatus("Bağlantı bekleniyor...");
-
-            // PC sadece bekler, sabit bir ID alır
+            
             peer = new Peer(room + "-viewer", config);
 
             peer.on('open', (id) => {
-                showStatus("Hazır! Telefonda 'Yayını Başlat'a bas.");
+                console.log("İzleyici hazır, telefon bekleniyor...");
             });
 
-            // Telefon bizi aradığında
+            // Telefon aradığında
             peer.on('call', (call) => {
-                showStatus("BAĞLANTI GELDİ! Görüntü alınıyor...");
-                call.answer(); // Aramayı kabul et
-
+                call.answer(); // Aç
+                
                 call.on('stream', (remoteStream) => {
                     const vid = document.getElementById('videoDisplay');
                     vid.srcObject = remoteStream;
-                    vid.muted = false; // Sesi aç
+                    vid.muted = false;
                     
-                    // Tarayıcıların "Otomatik Oynatma" engeli için Promise
-                    const playPromise = vid.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            showStatus("Videoyu başlatmak için ekrana tıkla!");
-                            document.body.addEventListener('click', () => vid.play());
-                        });
-                    }
+                    // Otomatik Oynatma
+                    const p = vid.play();
+                    if(p !== undefined) p.catch(() => {
+                        // Eğer tarayıcı engellerse kullanıcı tıklamalı
+                        document.body.addEventListener('click', () => vid.play());
+                    });
+
+                    // Kontrol çubuğunu göster
+                    document.getElementById('viewer-controls-bar').classList.remove('hidden');
                 });
             });
             
-            peer.on('disconnected', () => {
-                showStatus("Bağlantı koptu. Tekrar bağlanılıyor...");
-                peer.reconnect();
-            });
+            peer.on('disconnected', () => peer.reconnect());
+        }
+
+        // --- İZLEYİCİ MODLARI (CSS DEĞİŞTİRME) ---
+        function setMode(mode) {
+            const vid = document.getElementById('videoDisplay');
+            if(mode === 'portrait') {
+                vid.className = 'mode-portrait';
+            } else {
+                vid.className = 'mode-landscape';
+            }
+        }
+
+        function toggleMute() {
+            const vid = document.getElementById('videoDisplay');
+            vid.muted = !vid.muted;
+            const icon = document.getElementById('mute-icon');
+            if(vid.muted) icon.className = "fa-solid fa-volume-xmark";
+            else icon.className = "fa-solid fa-volume-high";
         }
 
         function getRoom() {
@@ -196,10 +277,8 @@
             return r.toLowerCase().replace(/[^a-z0-9]/g, '');
         }
 
-        function showStatus(msg) {
-            const el = document.getElementById('status');
-            el.classList.remove('hidden');
-            el.innerText = msg;
+        function setStatus(msg) {
+            document.getElementById('status-msg').innerText = msg;
         }
     </script>
 </body>
